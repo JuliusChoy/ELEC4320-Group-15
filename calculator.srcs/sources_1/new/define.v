@@ -19,16 +19,21 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+// Basic Arithmetic Operations
+`define ADD           4'd0    // Latency: 2 cycles
+`define SUB           4'd1    // Latency: 2 cycles
+`define MULT          4'd2    // Latency: 2 cycles
+`define DIV           4'd3    // Latency: 3 cycles
 
-`define HALT  4'b0000
-`define PUSHI 4'b0001
-`define PUSH  4'b0010
-`define POP   4'b0011
-`define JMP   4'b0100
-`define JZ    4'b0101
-`define JNZ   4'b0110
-`define IN    4'b1101
-`define OUT   4'b1110
-`define OP    4'b1111
+// Advanced Mathematical Operations
+`define SQRT          4'd4    // Latency: 5 cycles
+`define COS           4'd5    // Latency: 4 cycles
+`define TAN           4'd6    // Latency: 4 cycles
+`define ARCSIN        4'd7    // Latency: 6 cycles
+`define ARCCOS        4'd8    // Latency: 4 cycles
+`define ARCTAN        4'd9    // Latency: 6 cycles
+`define LOG           4'd10   // Latency: 5 cycles (Logarithm)
+`define POW           4'd11   // Latency: 5 cycles (Power)
+`define EXP           4'd12   // Latency: 4 cycles (Exponential)
+`define FACT          4'd13   // Latency: 3 cycles (Factorial)
 
-`define DATA_WIDTH 5'd31
