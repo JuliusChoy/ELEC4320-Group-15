@@ -1,104 +1,37 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 07.12.2025 20:12:17
-// Design Name: 
-// Module Name: top
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
-
-module top(
-    input         clk,
-    input         PS2Data,
-    input         PS2Clk,
-    output        tx,
-    output        led_0,
-    output        led_1
-);
-
-    wire [7:0]  keycode;
-    wire        valid_ps2;
-    reg  [31:0] result;
-    reg         alu_idle;
-    wire        A;
-    wire        B;
-    wire        op;
-    wire        final;
-    wire        valid_calc;
-    wire        print;
-    wire [7:0]  ascii;
-    wire        uart_ready;
-
-    reg         CLK50MHZ=0;
-    always @(posedge(clk))begin
-        CLK50MHZ<=~CLK50MHZ;
-    end
-    
-    ps2_receiver ps2_in (
-        .clk        (clk),
-        .kb_clk     (PS2Clk),
-        .kb_key     (PS2Data),
-        
-        .keycode    (keycode),
-        .valid      (valid_ps2)
+module electronic_calculator_top(
+        clk_in,
+        reset,
+        ALU_in_A,
+        ALU_in_B,
+        OPcode,
+        EC_out
     );
     
-    keys_2_calc(
-        .clk(clk),
-        .keycode(keycode),
-        .result(result),
-        .start(valid_ps2),        
-        .idle(alu_idle),
-                 
-        .A(A),    
-        .B(B),    
-        .op(op),    
-        .final(final),
-        .valid(valid_calc),       
-        .print(print)        
-    );
+    input  clk_in;
+    input  reset;
+    input wire [31:0] ALU_in_A, ALU_in_B;
+    input wire [3:0] OPcode;
+    output reg [31:0] EC_out;
     
-    // fake calculator
-    always@(posedge clk) begin
-        if(valid_calc) begin
-            alu_idle <= 0;
-            result <= A + B + op;
-        end else alu_idle <= 1;
-    end
+    wire clk_300MHz;
+    wire locked;
+    wire [31:0] ALU_out;
+    wire valid_out;
+    reg valid_in = 1'b0;
     
-    num_2_ascii converter (
-        .clk        (clk),
-        .num        (final),
-        .start      (print),
-        .uart_ready (uart_ready),
-        
-        .char       (ascii),
-        .uart_start (start)
-    );
+    /*CORE MODULES*/
     
-    uart_sender uart_out (
-        .clk    (clk),
-        .start  (start),
-        .char   (ascii),
-        
-        .tx     (tx),
-        .ready  (uart_ready)
-    );
 
-        ALU ALU(
+   clk_300_mhz clk_300_mhz(
+       .clk_in1     (clk_in),
+       .clk_out1    (clk_300MHz),
+       .locked      (locked),
+       .reset       (reset)
+   );
+    
+    ALU ALU(
         .clk        (clk_300MHz),
         .rst        (reset),           // Added Reset
         .valid_in   (valid_in),   // Handshake: new operation is valid
