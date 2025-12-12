@@ -38,8 +38,8 @@ module keys_2_calc(
     reg sign = 0; // 0 positive, 1 negative
     
     reg p_start = 0;
-    localparam DIG = 0, U_OP = 1, B_OP = 2;
-    reg [1:0] p_push = DIG; // Last item pushed
+    localparam NUM = 0, U_OP = 1, B_OP = 2;
+    reg [1:0] p_push = NUM; // Last item pushed
 
     // Stack (would have done this as a seperate module but then I'd need multiple clock cycles for multiple pushes/pops
     reg [31:0]  stack [0:31];
@@ -53,7 +53,9 @@ module keys_2_calc(
     reg [1:0] state = KEY;
     
     always@(posedge clk) begin
-    valid <= 0;    // set valid back to zero for 1-tick pulse
+    valid <= 0;
+    print <= 0;
+    
     if (idle) begin
         case (state)
         KEY: begin
@@ -70,22 +72,27 @@ module keys_2_calc(
             8'h4E: sign <= ~sign;                                                       // Negative
             
             8'h15, 8'h1D, 8'h24, 8'h2D, 8'h1C, 8'h1B: begin                             // Binary opcodes: [0-3, 10-11]
-                stack [rsp] <= keycode;
-                rsp <= rsp + 1;
+                if (p_push == NUM) begin
+                    stack[rsp] <= keycode;
+                    rsp <= rsp + 1;
+                end else begin
+                    stack[rsp-1] <= keycode;  // Replace last entered operation (cannot have binary operation after anything except number)
+                end
                 p_push <= B_OP;
             end
             
             8'h2C, 8'h35, 8'h3C, 8'h43, 8'h44, 8'h4D, 8'h23, 8'h2B: begin               // Unary opcodes: [4-9, 12-13]
-                if (p_push == DIG) begin
-                    stack[rsp] <= keycode;
-                    rsp <= rsp + 1;
-                end else begin
-                    stack[rsp-1] <= keycode;  // Replace last entered operation (cannot have binary operation after anything except digit)
-                end
+                stack[rsp] <= keycode;
+                rsp <= rsp + 1;
+                p_push <= U_OP;
             end
             
             8'h5A: begin                                                                // Enter - print result
-                
+                if (!empty) begin
+                    final <= stack[rsp-1];
+                    rsp <= rsp - 1;
+                    print <= 1;
+                end
             end           
             endcase
             count <= count + 1;
@@ -101,10 +108,9 @@ module keys_2_calc(
         end
         
         PUSH_NUM: begin
-            case (p_push) // If previous entry was an operation, send to ALU, else replace last entered number
-            DIG: begin
+            case (p_push) // If previous entry was a number replace it, else send calc to ALU
+            NUM: begin
                 stack[rsp-1] <= digit;  
-                p_push <= DIG;
                 state <= KEY;
             end
             B_OP: begin
@@ -136,7 +142,7 @@ module keys_2_calc(
                 rsp <= rsp + 1;
                 state <= KEY;
             end else begin
-                case (stack[rsp-1]) // If stack is not empty after getting result, top will always be opcode 
+                case (stack[rsp-1]) // If stack is not empty after getting result, top will always be a queued opcode 
                 0, 1, 2, 3, 10, 11: begin       // Binary OP
                     op <= stack[rsp-1];
                     A <= stack[rsp-2];
@@ -151,6 +157,7 @@ module keys_2_calc(
                 end
                 endcase
                 valid <= 1; // Tell ALU we have a calculation for it
+                state <= RES;
             end
         end
         
