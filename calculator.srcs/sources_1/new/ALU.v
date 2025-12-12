@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 `include "define.v"
 
-module ALU(
+ module ALU(
     input        clk,
     input        rst,           // Added Reset
     input        valid_in,      // Handshake: new operation is valid
